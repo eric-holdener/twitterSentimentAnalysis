@@ -58,6 +58,19 @@ def naiveBayes(trainingDF, classificationDF):
 
     # to do - implement classification on scraped tweets
 
+    # for col in classificationDF.columns:
+    #     print(col)
+    #
+    # predictionTweets = classificationDF['tweet']
+
+    # use full training data to classify scraped tweets
+    # x = text_counts
+    # y = trainingDataSet['Sentiment']
+
+    # predictedSentiment = MNB.predict(predictionTweets)
+    #
+    # print(predictedSentiment)
+
 
 
 
