@@ -1,79 +1,174 @@
+import nltk
+from nltk.corpus import twitter_samples
+from nltk.corpus import stopwords
+import numpy as np
 import pandas as pd
-from sklearn.feature_extraction.text import CountVectorizer
-from nltk.tokenize import RegexpTokenizer
-from sklearn.naive_bayes import MultinomialNB
-from sklearn.model_selection import train_test_split
-from sklearn import metrics
+import re
+import string
+from nltk.tokenize import TweetTokenizer
+from nltk.stem import PorterStemmer
+
+def preprocessing(tweet):
+    stemmer = PorterStemmer()
+    stopwords_english = stopwords.words('english')
+
+    # remove stock market tickers
+    tweet = re.sub(r'\$\w*', '', tweet)
+
+    # remove old style retweet text RT
+    tweet = re.sub(r'^RT[\s]+', '', tweet)
+
+    # remove hyperlinks
+    tweet = re.sub(r'https?:\/\/.*[\r\n]*', '', tweet)
+
+    # remove the # symbol
+    tweet = re.sub(r'#', '', tweet)
+
+    # tokenize the tweet
+    tokenizer = TweetTokenizer(preserve_case=False, reduce_len=True, strip_handles=True)
+    tweet_tokens = tokenizer.tokenize(tweet)
+
+    tweet_clean = []
+
+    # removing stopwords and punctuation
+    for word in tweet_tokens:
+        if (word not in stopwords_english and word not in string.punctuation):
+            # stemming
+            stem_word = stemmer.stem(word)
+            tweet_clean.append(stem_word)
+
+    return tweet_clean
+
+# build word count dictionary that stores word count of each word in the corpus
+# in dictionary, each key is a 2 element tuple containing a (word, y) pair
+# word is an element in a processed tweet
+# y is an integer representing the corpus - 1 for positive, 0 for negative
+def count_tweets(tweets, ys):
+    ys_list = np.squeeze(ys.tolist())
+    freqs = {}
+
+    for y, tweet in zip(ys_list, tweets):
+        for word in preprocessing(tweet):
+            pair = (word, y)
+            if pair in freqs:
+                freqs[pair] += 1
+            else:
+                freqs[pair] = 1
+
+    return freqs
+
+# lookup function returns positive and negative frequencies for specific words
+def lookup(freqs, word, label):
+    n = 0
+    pair = (word, label)
+    if pair in freqs:
+        n = freqs[pair]
+    return n
+
+# prepare data for training and testing - 80-20 split for training and testing respectively
+def training(all_positive_tweets, all_negative_tweets):
+    train_pos = all_positive_tweets[:4000]
+    test_pos = all_positive_tweets[4000:]
+
+    train_neg = all_negative_tweets[:4000]
+    test_neg = all_negative_tweets[4000:]
+
+    train_x = train_pos + train_neg
+    test_x = test_pos + test_neg
+
+    # numpy array for the labels in the training set
+    train_y = np.append(np.ones((len(train_pos))), np.zeros((len(train_neg))))
+    test_y = np.append(np.ones((len(test_neg))), np.zeros((len(test_neg))))
+
+    # build a frequency dictionary
+    freqs = count_tweets(train_x, train_y)
+
+    logliklihood = {}
+    logprior = 0
+
+    # calculate V, number of unique words in the vocabulary
+    vocab = set([pair[0] for pair in freqs.keys()])
+    V = len(vocab)
+
+    # Calculate N_pos, N_neg, V_pos, V_neg
+    # N_pos : total number of positive words
+    # N_neg : total number of negative words
+    # V_pos : total number of unique positive words
+    # V_neg : total number of unique negative words
+
+    N_pos = N_neg = V_pos = V_neg = 0
+    for pair in freqs.keys():
+        if pair[1]>0:
+            V_pos += 1
+            N_pos += freqs[pair]
+        else:
+            V_neg += 1
+            N_neg += freqs[pair]
+
+    # number of Documents (tweets)
+    D = len(train_y)
+
+    # D_pos, number of positive documents
+    D_pos = len(list(filter(lambda x: x > 0, train_y)))
+
+    # D_neg, number of negative documents
+    D_neg = len(list(filter(lambda x: x <= 0, train_y)))
+
+    # calculate the logprior
+    logprior = np.log(D_pos) - np.log(D_neg)
+
+    for word in vocab:
+        freqs_pos = lookup(freqs, word, 1)
+        freqs_neg = lookup(freqs, word, 0)
+
+        # calculate the probability of each word being positive and negative
+        p_w_pos = (freqs_pos+1)/(N_pos+V)
+        p_w_neg = (freqs_neg+1)/(N_neg+V)
+
+        logliklihood[word] = np.log(p_w_pos/p_w_neg)
+
+    return logprior, logliklihood, test_x, test_y
+
+def naive_bayes_predict(tweet, logprior, logliklihood):
+    word_1 = preprocessing(tweet)
+    p = 0
+    p+=logprior
+
+    for word in word_1:
+        if word in logliklihood:
+            p+=logliklihood[word]
+
+    return p
+
+def test_naive_bayes(test_x, test_y, logprior, logliklihood):
+    accuracy = 0
+    y_hats = []
+    for tweet in test_x:
+        if naive_bayes_predict(tweet, logprior, logliklihood) > 0:
+            y_hat_i = 1
+        else:
+            y_hat_i = 0
+        y_hats.append(y_hat_i)
+    error = np.mean(np.absolute(test_y - y_hats))
+    accuracy = 1-error
+
+    return accuracy
+
+def sentimentAnalysis(tweets, logprior, loglikelihood):
+    for tweet in tweets:
+        p = naive_bayes_predict(tweet, logprior, loglikelihood)
+        if p>1:
+            print('\033[92m')
+            print(f'{tweet} :: Positive sentiment ({p: .2f})')
+        else:
+            print('\033[91m')
+            print(f'{tweet} :: Negative sentiment ({p: .2f})')
 
 
-# either naive bayesian algorithm or a neural net for the sentiment analysis - research both
-# (potentially code both and run tests on which is better / more accurate?)
-
-# sentiment dataset acquired here: https://www.kaggle.com/kazanova/sentiment140
-
-# change file read to something more universal
-df = pd.read_csv('C:\\Users\\ehold\\Desktop\\Folders\\Datasets\\training.1600000.processed.noemoticon.csv')
-
-def bagOfWords(dataSet):
-    # set data to local variable
-    trainingDataset = dataSet
-
-    # add columns the training data
-    trainingDataset.columns = ['Sentiment', 'ID', 'Date', 'Flag', 'User', 'Text']
-
-    # generate Document Term Matrix (DTM) using CountVectorizer from Sklearn
-    # nGram model is how many words are taken at a time
-    # i.e - bigram model would return the following from this sentence - 'bigram model', 'model would', would return',
-    # etc
-
-    # generate token for the DTM
-    token = RegexpTokenizer(r'[a-zA-Z0-9]+')
-
-    # tokenizer - overrides string tokenization step, generate tokenizer from NLTK's regex tokenizer (default is none)
-    # lowercase - True, left out of countvectorizer as true is default
-    # stop_words - 'english' - default is none, we provide english as stop words to imporve results
-    # ngram_range - (1, 1) is only monograms, (2,2) is only bigrams, (1,2) is both, etc
-    cv = CountVectorizer(stop_words='english', ngram_range=(1, 1), tokenizer=token.tokenize)
-    text_counts = cv.fit_transform(dataSet['Text'])
-    return(text_counts, trainingDataset)
-
-def naiveBayes(trainingDF, classificationDF):
-    # pass in text counts from bag of words and the training dataset with column names
-    text_counts, trainingDataSet = bagOfWords(trainingDF)
-
-    # split data into training and testing data (predictor data x = text_counts, predicted data y = sentiment)
-    x_train, x_test, y_train, y_test = train_test_split(text_counts, trainingDataSet['Sentiment'],
-                                                        test_size=0.25, random_state=5)
-
-    # define the multinomial naive bayes model
-    MNB = MultinomialNB()
-
-    # fit the multinomial model onto our data with training data
-    MNB.fit(x_train, y_train)
-
-    # find accuracy of the model
-    predicted = MNB.predict(x_test)
-    accuracy_score = metrics.accuracy_score(predicted, y_test)
-    print(str('{:04.2f}'.format(accuracy_score*100))+'%')
-
-    # to do - implement classification on scraped tweets
-
-    # for col in classificationDF.columns:
-    #     print(col)
-    #
-    # predictionTweets = classificationDF['tweet']
-
-    # use full training data to classify scraped tweets
-    # x = text_counts
-    # y = trainingDataSet['Sentiment']
-
-    # predictedSentiment = MNB.predict(predictionTweets)
-    #
-    # print(predictedSentiment)
 
 
 
 
 
-if __name__ == '__main__':
-    naiveBayes(df)
+
+
