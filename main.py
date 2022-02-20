@@ -14,9 +14,9 @@ def main():
     fileName = 'scrapedTweets.csv'
 
     # scrape the keywords
-    twitterScraper.scrape(keyword, tweetsToScrape, fileName)
-    classificationDf = pd.read_csv(fileName)
-    tweets = classificationDf.tweet
+    # twitterScraper.scrape(keyword, tweetsToScrape, fileName)
+    # classificationDf = pd.read_csv(fileName)
+    # tweets = classificationDf.tweet
 
     # # download tweet samples and stopwords from nltk
     # nltk.download('twitter_samples')
@@ -26,9 +26,11 @@ def main():
     all_positive_tweets = twitter_samples.strings('positive_tweets.json')
     all_negative_tweets = twitter_samples.strings('negative_tweets.json')
 
-    logprior, loglikelihood, test_x, test_y = sentimentAnalysis.training(all_positive_tweets, all_negative_tweets)
+    sentimentAnalysis.training(all_positive_tweets, all_negative_tweets)
 
-    sentimentAnalysis.sentimentAnalysis(tweets, logprior, loglikelihood)
+    # logprior, loglikelihood, test_x, test_y = sentimentAnalysis.training(all_positive_tweets, all_negative_tweets)
+
+    # sentimentAnalysis.sentimentAnalysis(tweets, logprior, loglikelihood)
 
 if __name__ == '__main__':
     main()

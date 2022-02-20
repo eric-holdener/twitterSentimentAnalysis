@@ -67,12 +67,14 @@ def lookup(freqs, word, label):
 
 # prepare data for training and testing - 80-20 split for training and testing respectively
 def training(all_positive_tweets, all_negative_tweets):
+    # segment training - select first 4,000 (80%) for training, and everything after 4,000 (20%) for testing
     train_pos = all_positive_tweets[:4000]
     test_pos = all_positive_tweets[4000:]
 
     train_neg = all_negative_tweets[:4000]
     test_neg = all_negative_tweets[4000:]
 
+    # make our training and testing x variables by combining the positive and negative sentiment datasets
     train_x = train_pos + train_neg
     test_x = test_pos + test_neg
 
@@ -80,13 +82,24 @@ def training(all_positive_tweets, all_negative_tweets):
     train_y = np.append(np.ones((len(train_pos))), np.zeros((len(train_neg))))
     test_y = np.append(np.ones((len(test_neg))), np.zeros((len(test_neg))))
 
+    print('train_y = ')
+    print(train_y)
+    print('test y = ')
+    print(test_y)
+
     # build a frequency dictionary
+    # pass in training variables x and y to find frequencies
     freqs = count_tweets(train_x, train_y)
+    # freqs returns a pair of (keword, sentiment[1, 0 - 1 is positive, 0 is negative])
+    # followed by : n (number of occurences)
 
     logliklihood = {}
     logprior = 0
 
     # calculate V, number of unique words in the vocabulary
+    # vocab is a list of all the unique words in freqs, made by iterating over each pair in keys and extracting
+    # index 0, which is the word
+    # V is just the length of the list vocab, i.e. how many unique words there are
     vocab = set([pair[0] for pair in freqs.keys()])
     V = len(vocab)
 
@@ -96,12 +109,21 @@ def training(all_positive_tweets, all_negative_tweets):
     # V_pos : total number of unique positive words
     # V_neg : total number of unique negative words
 
+    # set the total number of positive and negative words and positive and negative unique words to 0
     N_pos = N_neg = V_pos = V_neg = 0
+    # iterates over each pair of (word, sentiment) in freqs
     for pair in freqs.keys():
+        # index 1 of the pair is sentiment
+        # if index 1 is greater than 0, it's a positive sentiment
         if pair[1]>0:
+            # v_pos is incremented by one
+            # n_pos is incremented by number of occurences, the other value stored in freqs[pair]
             V_pos += 1
             N_pos += freqs[pair]
+        # else if paid[1] is 0 or less, sentiment is negative
         else:
+            # increment v_neg by one
+            # n_neg is incremented by number of occurences, the other value stored in freqs[pair]
             V_neg += 1
             N_neg += freqs[pair]
 
