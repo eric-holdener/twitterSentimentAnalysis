@@ -82,11 +82,6 @@ def training(all_positive_tweets, all_negative_tweets):
     train_y = np.append(np.ones((len(train_pos))), np.zeros((len(train_neg))))
     test_y = np.append(np.ones((len(test_neg))), np.zeros((len(test_neg))))
 
-    print('train_y = ')
-    print(train_y)
-    print('test y = ')
-    print(test_y)
-
     # build a frequency dictionary
     # pass in training variables x and y to find frequencies
     freqs = count_tweets(train_x, train_y)
