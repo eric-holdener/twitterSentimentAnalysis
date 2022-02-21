@@ -126,14 +126,18 @@ def training(all_positive_tweets, all_negative_tweets):
     D = len(train_y)
 
     # D_pos, number of positive documents
+    # returns length of the list train_y after filtering for x>0 (positive comments)
     D_pos = len(list(filter(lambda x: x > 0, train_y)))
 
     # D_neg, number of negative documents
+    # returns length of the list train_y after filtering for x<=0 (positive comments)
     D_neg = len(list(filter(lambda x: x <= 0, train_y)))
 
     # calculate the logprior
+    # log of number of positive documents - log of number of negative documents
     logprior = np.log(D_pos) - np.log(D_neg)
 
+    # for each word in the unique word list
     for word in vocab:
         freqs_pos = lookup(freqs, word, 1)
         freqs_neg = lookup(freqs, word, 0)
