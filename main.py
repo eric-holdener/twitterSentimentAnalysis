@@ -9,6 +9,7 @@ import string
 from nltk.tokenize import TweetTokenizer
 from nltk.stem import PorterStemmer
 import twint
+import matplotlib.pyplot as plt
 
 def main():
     # key values to search in the scraper, returned from the gui
@@ -17,13 +18,13 @@ def main():
     fileName = 'scrapedTweets.csv'
 
     # scrape the keywords
-    scrape(keyword, tweetsToScrape, fileName)
+    # scrape(keyword, tweetsToScrape, fileName)
     classificationDf = pd.read_csv(fileName)
     tweets = classificationDf.tweet
 
     # # download tweet samples and stopwords from nltk
-    nltk.download('twitter_samples')
-    nltk.download('stopwords')
+    # nltk.download('twitter_samples')
+    # nltk.download('stopwords')
     #
     # load text fields of positive and negative tweets
     all_positive_tweets = twitter_samples.strings('positive_tweets.json')
@@ -33,7 +34,10 @@ def main():
 
     logprior, loglikelihood, test_x, test_y = training(all_positive_tweets, all_negative_tweets)
 
-    sentimentAnalysis(tweets, logprior, loglikelihood)
+
+    tweetArray, sentArray = sentimentAnalysis(tweets, logprior, loglikelihood)
+
+    visualize(tweetArray, sentArray)
 
 def scrape(keyword, scope, fileName):
     c = twint.Config()
@@ -217,14 +221,36 @@ def test_naive_bayes(test_x, test_y, logprior, logliklihood):
     return accuracy
 
 def sentimentAnalysis(tweets, logprior, loglikelihood):
+    tweetArray = []
+    sentArray = []
     for tweet in tweets:
         p = naive_bayes_predict(tweet, logprior, loglikelihood)
-        if p>1:
-            print('\033[92m')
-            print(f'{tweet} :: Positive sentiment ({p: .2f})')
-        else:
-            print('\033[91m')
-            print(f'{tweet} :: Negative sentiment ({p: .2f})')
+        tweetArray.append([tweet, p])
+        sentArray.append(p)
+        # if p>1:
+        #     print('\033[92m')
+        #     print(f'{tweet} :: Positive sentiment ({p: .2f})')
+        # else:
+        #     print('\033[91m')
+        #     print(f'{tweet} :: Negative sentiment ({p: .2f})')
+    return tweetArray, sentArray
+
+def visualize(tweetArray, sentArray):
+    x = pd.Series(sentArray).value_counts()
+
+    print(x)
+    print(sentArray)
+    print(tweetArray)
+
+    # fig, ax = plt.subplots()
+
+    # ax.hist(x, bins=10, linewidth=0.5, edgecolor="white")
+
+    # ax.set(xlim=(-10, 10), xticks = np.arange(-10, 10),
+    #         ylim=(0, 300), yticks = np.linspace(0, 300, 9))
+
+    # plt.show()
+
 
 if __name__ == '__main__':
     main()
