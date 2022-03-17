@@ -241,7 +241,6 @@ def visualize(tweetArray, sentArray):
     print(x)
     print(sentArray)
     print(tweetArray)
-
     # fig, ax = plt.subplots()
 
     # ax.hist(x, bins=10, linewidth=0.5, edgecolor="white")
