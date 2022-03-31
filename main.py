@@ -254,8 +254,6 @@ def visualize(tweetArray, maxSent, minSent):
             neutralTweets += 1
         elif 1 < tweet[1] <= maxSent:
             positiveTweets += 1
-    
-    print(f'Positive tweets = {positiveTweets}. Negative tweets = {negativeTweets}. Neutral tweets = {neutralTweets}')
 
     x = np.array([positiveTweets, negativeTweets, neutralTweets])
 
@@ -279,7 +277,6 @@ def minMaxSent(tweetArray, sentArray):
         runningTotal = runningTotal + valuePair[1]
         i += 1
     averageSentiment = runningTotal / i
-    print(f'Max Sentiment is {maxSent}. Min Sentiment is {minSent}. Average sentiment is {averageSentiment}.')
     return maxSent, minSent
 
 
