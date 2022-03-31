@@ -16,7 +16,7 @@ import os
 def main():
     # key values to search in the scraper, returned from the gui
     keyword = 'Fresno'
-    tweetsToScrape = 1000
+    tweetsToScrape = 100000
     fileName = 'scrapedTweets.csv'
 
     # scrape the keywords
