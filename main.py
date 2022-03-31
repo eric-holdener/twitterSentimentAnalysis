@@ -37,7 +37,9 @@ def main():
 
     tweetArray, sentArray = sentimentAnalysis(tweets, logprior, loglikelihood)
 
-    visualize(tweetArray, sentArray)
+    maxSent, minSent = minMaxSent(tweetArray, sentArray)
+
+    visualize(tweetArray, maxSent, minSent)
 
 def scrape(keyword, scope, fileName):
     c = twint.Config()
@@ -235,20 +237,45 @@ def sentimentAnalysis(tweets, logprior, loglikelihood):
         #     print(f'{tweet} :: Negative sentiment ({p: .2f})')
     return tweetArray, sentArray
 
-def visualize(tweetArray, sentArray):
-    x = pd.Series(sentArray).value_counts()
+def visualize(tweetArray, maxSent, minSent):
+    negativeTweets = 0
+    positiveTweets = 0
+    neutralTweets = 0
 
-    print(x)
-    print(sentArray)
-    print(tweetArray)
-    # fig, ax = plt.subplots()
+    for tweet in tweetArray:
+        if minSent <= tweet[1] < -1:
+            negativeTweets += 1
+        elif -1 <= tweet[1] <= 1:
+            neutralTweets += 1
+        elif 1 < tweet[1] <= maxSent:
+            positiveTweets += 1
+    
+    print(f'Positive tweets = {positiveTweets}. Negative tweets = {negativeTweets}. Neutral tweets = {neutralTweets}')
 
-    # ax.hist(x, bins=10, linewidth=0.5, edgecolor="white")
+    x = np.array([positiveTweets, negativeTweets, neutralTweets])
 
-    # ax.set(xlim=(-10, 10), xticks = np.arange(-10, 10),
-    #         ylim=(0, 300), yticks = np.linspace(0, 300, 9))
+    myLabels = ['Positive Tweets', 'Negative Tweets', 'Neutral Tweets']
+    myColors = ['green', 'red', 'gray']
 
-    # plt.show()
+    plt.pie(x, labels=myLabels, colors = myColors, autopct='%1.1f%%')
+    plt.show()
+
+
+def minMaxSent(tweetArray, sentArray):
+    i = 0
+    runningTotal = 0
+    maxSent = 0
+    minSent = 0
+    for valuePair in tweetArray:
+        if valuePair[1] > maxSent:
+            maxSent = valuePair[1]
+        elif valuePair[1] < minSent:
+            minSent = valuePair[1]
+        runningTotal = runningTotal + valuePair[1]
+        i += 1
+    averageSentiment = runningTotal / i
+    print(f'Max Sentiment is {maxSent}. Min Sentiment is {minSent}. Average sentiment is {averageSentiment}.')
+    return maxSent, minSent
 
 
 if __name__ == '__main__':
