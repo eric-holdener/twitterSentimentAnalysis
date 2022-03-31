@@ -1,4 +1,5 @@
 # This is a sample Python script.
+from fileinput import filename
 import nltk
 import numpy as np
 import pandas as pd
@@ -10,6 +11,7 @@ from nltk.tokenize import TweetTokenizer
 from nltk.stem import PorterStemmer
 import twint
 import matplotlib.pyplot as plt
+import os
 
 def main():
     # key values to search in the scraper, returned from the gui
@@ -18,7 +20,10 @@ def main():
     fileName = 'scrapedTweets.csv'
 
     # scrape the keywords
-    # scrape(keyword, tweetsToScrape, fileName)
+    if os.path.exists(fileName):
+        os.remove(fileName)
+
+    scrape(keyword, tweetsToScrape, fileName)
     classificationDf = pd.read_csv(fileName)
     tweets = classificationDf.tweet
 
